@@ -1,0 +1,16 @@
+node_modules/
+.wrangler/
+.dev.vars
+*.log
+
+# Android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/app/google-services.json
+*.iml
+.idea/
+.DS_Store
+*.jks
+*.keystore
