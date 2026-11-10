@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -13,10 +15,27 @@ android {
         applicationId = "com.myboo.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        // Release version comes from -Pmyboo.version=X.Y.Z (the release script); versionCode derives from it.
+        val ver = (project.findProperty("myboo.version") as String?) ?: "0.1.0"
+        val (maj, min, pat) = ver.split(".").map { it.toInt() }
+        versionCode = maj * 10000 + min * 100 + pat
+        versionName = ver
         val api = (project.findProperty("myboo.apiUrl") as String?) ?: "https://myboo.evaakselrad.com"
         buildConfigField("String", "API_BASE_URL", "\"$api\"")
+    }
+
+    // Release signing: keystore lives outside the repo (see scripts/release.sh). Updates only install over the
+    // same signing key, so never lose it.
+    val ks = file(System.getProperty("user.home") + "/.myboo/keystore.properties")
+    if (ks.exists()) {
+        val p = Properties().apply { ks.inputStream().use { load(it) } }
+        signingConfigs.create("release") {
+            storeFile = file(p.getProperty("storeFile"))
+            storePassword = p.getProperty("storePassword")
+            keyAlias = p.getProperty("keyAlias")
+            keyPassword = p.getProperty("keyPassword")
+        }
+        buildTypes.getByName("release").signingConfig = signingConfigs.getByName("release")
     }
 
     buildFeatures {

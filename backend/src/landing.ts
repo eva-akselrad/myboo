@@ -56,6 +56,7 @@ const FEATURES: [string, string][] = [
 const FAQ: [string, string][] = [
   ["Who can see where I am?", "Only people in a circle you've joined, and only while sharing is switched on. You can turn it off with one tap, any time."],
   ["Which phones does it work on?", "MyBoo is an Android app today (Android 8 or newer). It needs location permission, and for alerts to work with the screen off it asks for &ldquo;always&rdquo; location access."],
+  ["How do updates work?", "MyBoo checks GitHub for a new release when you open it, downloads it quietly, and shows a little note with an &ldquo;Update now&rdquo; button. Nothing to look up or reinstall by hand."],
   ["Will it drain my battery?", "It uses balanced-power location, roughly one update every 20 seconds while sharing is on, rather than constant high-accuracy GPS."],
   ["How do the alerts work?", "Your phone sends position updates to our server. The server notices when you cross into or out of a place, or start moving at driving speed, and pushes a note to the rest of your circle."],
   ["How do I delete my data?", "Open Settings in the app and tap &ldquo;Delete my account&rdquo;. Your profile, location and circle memberships are removed right away."],
@@ -77,10 +78,10 @@ export function landingHtml(): string {
   const body = `<main>
 <div class="hero">
   <div>
-    <span class="tag">Android &middot; early access</span>
+    <span class="tag">Android &middot; self-updating</span>
     <h1>Keep your <span class="hl">people</span> close.</h1>
     <p class="lead">A cozy, private way to see that everyone got where they were going. A live map, a note when someone arrives or leaves, and a heads-up when they start driving.</p>
-    <div class="cta"><a class="btn" href="#how">See how it works</a><a class="btn alt" href="/status"><span class="dot ok"></span>Status</a></div>
+    <div class="cta"><a class="btn" href="https://github.com/eva-akselrad/myboo/releases/latest/download/myboo.apk">Download for Android</a><a class="btn alt" href="#how">How it works</a><a class="btn alt" href="/status"><span class="dot ok"></span>Status</a></div>
   </div>
   <div class="phones" aria-hidden="false">
     <div class="phone p1"><img src="/img/welcome.webp" alt="MyBoo welcome screen on notebook paper" width="540" height="1200"></div>
@@ -122,8 +123,8 @@ export function landingHtml(): string {
 
 <section id="get" class="band"><span class="tape"></span>
 <h2>Ready to keep your people close?</h2>
-<p>MyBoo for Android is in early access. We'll add a download link here as soon as it's ready.</p>
-<a class="btn alt" href="/status"><span class="dot ok"></span>Check status</a></section>
+<p>Grab the APK, tap it, and allow installs from your browser when Android asks. After that MyBoo updates itself whenever a new version is out.</p>
+<a class="btn alt" href="https://github.com/eva-akselrad/myboo/releases/latest/download/myboo.apk">Download the APK</a></section>
 </main>
 <footer><span><span class="dot" id="sdot"></span><a href="/status" id="stext">Status</a></span><span>Map data &copy; OpenStreetMap contributors</span><span>Made with care.</span></footer>`;
 

@@ -149,6 +149,8 @@ fun SettingsScreen(api: Api, prefs: Prefs, onBack: () -> Unit, onSignedOut: () -
             }
         }
 
+        item { VersionCard() }
+
         // account actions
         item {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
