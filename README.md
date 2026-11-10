@@ -27,9 +27,13 @@ A cozy, self-hostable location-sharing app in the spirit of Life360. Create a ci
 - Signed-in devices list with per-device sign-out, sign out everywhere, delete account.
 - Hardening: PBKDF2-SHA256 password hashing, hashed one-time codes (10 min, 5 attempts, single use, resend cooldown, hourly cap), account lockout after repeated bad passwords, no account enumeration on password reset, revocable 90-day sliding sessions.
 
+**Web**
+- **Landing page** at `/`: pastel-notebook marketing page with screenshots (static assets in `backend/public/img`), features, FAQ and a live status dot.
+- **Status page** at `/status` (and JSON at `/status.json`): API, database, email, push and map-tile health with 30-day uptime bars. A cron trigger (every 5 min) probes the API, database and OSM tiles; email and push outcomes are recorded when they happen. Data lives in the D1 `checks` table (35-day retention).
+
 ## Deployment
 
-The API is live at **https://myboo.evaakselrad.com** (`GET /health`), and the app points at it by default.
+The site and API are live at **https://myboo.evaakselrad.com** (`GET /health`), and the app points at it by default.
 
 ### Backend
 

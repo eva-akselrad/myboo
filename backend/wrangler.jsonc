@@ -4,6 +4,8 @@
   "main": "src/index.ts",
   "compatibility_date": "2025-01-01",
   "observability": { "enabled": true },
+  "triggers": { "crons": ["*/5 * * * *"] },
+  "assets": { "directory": "./public" },
   "routes": [{ "pattern": "myboo.evaakselrad.com", "custom_domain": true }],
   "d1_databases": [
     {

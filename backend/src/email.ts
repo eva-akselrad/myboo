@@ -1,4 +1,5 @@
 import type { Env } from "./router";
+import { record } from "./status";
 import { escapeHtml } from "./util";
 
 export type CodePurpose = "verify_email" | "login_2fa" | "reset_password";
@@ -41,8 +42,10 @@ async function send(env: Env, to: string, subject: string, html: string, text: s
   }
   try {
     await env.EMAIL.send({ to, from: { email: from, name: "MyBoo" }, subject, html, text });
+    await record(env, "email", true);
   } catch (e) {
     console.error("email send failed", e);
+    await record(env, "email", false);
     if (env.DEV_LOG_CODES !== "1") throw e; // in production surface the failure; in local dev the code is logged
   }
 }

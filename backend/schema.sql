@@ -74,3 +74,12 @@ CREATE TABLE IF NOT EXISTS user_state (
   driving    INTEGER NOT NULL DEFAULT 0,
   fast_count INTEGER NOT NULL DEFAULT 0
 );
+
+-- Status page: probe results (from the cron) and runtime events (email/push sends).
+CREATE TABLE IF NOT EXISTS checks (
+  ts        INTEGER NOT NULL,
+  component TEXT NOT NULL,   -- api | database | tiles (probes) | email | push (events)
+  ok        INTEGER NOT NULL,
+  ms        INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_checks_component_ts ON checks(component, ts);

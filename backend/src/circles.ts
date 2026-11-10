@@ -1,6 +1,7 @@
 import { computeInside, nextDriveState, type Place } from "./geo";
 import { sendPush } from "./fcm";
 import { route, type Env, type User } from "./router";
+import { record } from "./status";
 import { cleanName, err, inviteCode, isNum, json, newId, readBody } from "./util";
 
 async function isMember(env: Env, circleId: string, userId: string) {
@@ -21,6 +22,8 @@ async function notifyUsers(env: Env, userIds: string[], title: string, body: str
   await Promise.all(
     rows.results.map(async (u) => {
       const r = await sendPush(env.FCM_SERVICE_ACCOUNT, u.fcm_token, title, body);
+      if (r === "sent" || r === "invalid-token") await record(env, "push", true); // a dead device token isn't an outage
+      else if (r === "error") await record(env, "push", false);
       if (r === "invalid-token") await env.DB.prepare("UPDATE users SET fcm_token = NULL WHERE id = ?").bind(u.id).run();
     }),
   );
