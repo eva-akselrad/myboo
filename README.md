@@ -5,6 +5,11 @@ A small, self-hostable location-sharing app in the spirit of Life360. Create a c
 - `android/` — Kotlin + Jetpack Compose app (foreground location service, FCM push)
 - `backend/` — Cloudflare Worker + D1 (SQLite) API; does geofence/driving detection and sends pushes via FCM
 
+<p align="center">
+  <img src="docs/screenshot-dark.png" width="300" alt="MyBoo dark theme">
+  <img src="docs/screenshot-light.png" width="300" alt="MyBoo light theme">
+</p>
+
 ## How it works
 
 1. The app registers anonymously (name only) and gets a bearer token.
@@ -14,6 +19,10 @@ A small, self-hostable location-sharing app in the spirit of Life360. Create a c
    - **Arrive / leave** — enter at `radius`, leave only past `radius × 1.25` (hysteresis against GPS jitter); fixes with accuracy > 100 m are ignored for transitions.
    - **Started driving** — speed ≥ 4.5 m/s on 2 consecutive fixes; stops when speed < 1 m/s.
 5. Other circle members get an FCM push (`"Sam arrived at Home"`, `"Sam started driving"`). The first-ever fix only sets a baseline, so joining doesn't fire fake arrivals.
+
+## Live backend
+
+The API is deployed at `https://myboo-api.scienceandfire66.workers.dev` (`GET /health`), and the app points at it by default.
 
 ## Backend setup
 
@@ -55,5 +64,5 @@ All but `POST /v1/users` need `Authorization: Bearer <token>`.
 - Auth is a bare bearer token per device (no recovery if the app data is cleared). Add accounts before real use.
 - Only the latest location is stored — no history/trips.
 - Boot auto-resume of sharing may be blocked by Android 14+ background-start rules for location foreground services; open the app once after reboot.
-- No map view yet (tapping a person opens their position in your maps app). Maps SDK is the obvious next step.
+- The home screen shows a keyless radar view of people and place geofences; tapping a person opens their position in your maps app. A real map tiles layer is a possible next step.
 - No per-person notification preferences or quiet hours.

@@ -8,8 +8,7 @@
     {
       "binding": "DB",
       "database_name": "myboo",
-      // Replace after running: wrangler d1 create myboo
-      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+      "database_id": "3311ae9c-a8ce-436e-9c6b-d3cae4cbe493"
     }
   ]
   // Secret (not committed): wrangler secret put FCM_SERVICE_ACCOUNT

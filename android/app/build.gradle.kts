@@ -15,7 +15,7 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
-        val api = (project.findProperty("myboo.apiUrl") as String?) ?: "http://10.0.2.2:8787"
+        val api = (project.findProperty("myboo.apiUrl") as String?) ?: "https://myboo-api.scienceandfire66.workers.dev"
         buildConfigField("String", "API_BASE_URL", "\"$api\"")
     }
 
