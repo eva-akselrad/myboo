@@ -95,7 +95,7 @@ private fun App() {
                 prefs.circleId = null; circleId = null
             }
         }
-        if (signedIn) UpdateBanner(Modifier.align(Alignment.BottomCenter))
+        UpdateBanner(Modifier.align(Alignment.BottomCenter))
     }
 }
 
