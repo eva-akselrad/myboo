@@ -4,7 +4,6 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
-    id("com.google.gms.google-services")
 }
 
 android {
@@ -63,6 +62,4 @@ dependencies {
     implementation("org.osmdroid:osmdroid-android:6.1.20") // OpenStreetMap, no API key
 
     implementation("com.google.android.gms:play-services-location:21.3.0")
-    implementation(platform("com.google.firebase:firebase-bom:33.5.1"))
-    implementation("com.google.firebase:firebase-messaging")
 }

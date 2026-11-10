@@ -49,7 +49,6 @@ import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
-import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -212,9 +211,17 @@ private fun CircleScreen(api: Api, prefs: Prefs, circleId: String, onSettings: (
         fgLauncher.launch(perms.toTypedArray())
     }
 
+    // Alerts show up as notifications, so ask for that permission as soon as we're in a circle.
+    val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
     LaunchedEffect(Unit) {
-        runCatching { api.setFcmToken(FirebaseMessaging.getInstance().token.await()) }
+        if (Build.VERSION.SDK_INT >= 33 && !hasPerm(Manifest.permission.POST_NOTIFICATIONS)) {
+            notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
+    LaunchedEffect(Unit) {
         while (true) {
+            runCatching { Alerts.poll(ctx, api, prefs) }
             runCatching { api.circleDetail(circleId) }
                 .onSuccess { detail = it; error = null }
                 .onFailure { error = it.message }

@@ -17,5 +17,4 @@
   // Cloudflare Email Service: sender domain (evaakselrad.com) is onboarded for Email Sending.
   "send_email": [{ "name": "EMAIL" }],
   "vars": { "FROM_EMAIL": "myboo@evaakselrad.com" }
-  // Secret (not committed): wrangler secret put FCM_SERVICE_ACCOUNT
 }

@@ -83,3 +83,13 @@ CREATE TABLE IF NOT EXISTS checks (
   ms        INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_checks_component_ts ON checks(component, ts);
+
+-- Alerts waiting for a phone to pick them up (arrive / leave / driving). Phones poll /v1/alerts.
+CREATE TABLE IF NOT EXISTS alerts (
+  id      INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT NOT NULL,
+  title   TEXT NOT NULL,
+  body    TEXT NOT NULL,
+  ts      INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_alerts_user ON alerts(user_id, id);

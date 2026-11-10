@@ -55,10 +55,10 @@ const FEATURES: [string, string][] = [
 
 const FAQ: [string, string][] = [
   ["Who can see where I am?", "Only people in a circle you've joined, and only while sharing is switched on. You can turn it off with one tap, any time."],
-  ["Which phones does it work on?", "MyBoo is an Android app today (Android 8 or newer). It needs location permission, and for alerts to work with the screen off it asks for &ldquo;always&rdquo; location access."],
+  ["Which phones does it work on?", "MyBoo is an Android app today (Android 8 or newer). It needs location permission, for alerts to work with the screen off it asks for &ldquo;always&rdquo; location access, and it works best with battery use set to &ldquo;unrestricted&rdquo;."],
   ["How do updates work?", "MyBoo checks GitHub for a new release when you open it, downloads it quietly, and shows a little note with an &ldquo;Update now&rdquo; button. Nothing to look up or reinstall by hand."],
   ["Will it drain my battery?", "It uses balanced-power location, roughly one update every 20 seconds while sharing is on, rather than constant high-accuracy GPS."],
-  ["How do the alerts work?", "Your phone sends position updates to our server. The server notices when you cross into or out of a place, or start moving at driving speed, and pushes a note to the rest of your circle."],
+  ["How do the alerts work?", "Your phone sends position updates to our server. The server notices when you cross into or out of a place, or start moving at driving speed, and queues a note for the rest of your circle. Their phones pick it up within about 20 seconds."],
   ["How do I delete my data?", "Open Settings in the app and tap &ldquo;Delete my account&rdquo;. Your profile, location and circle memberships are removed right away."],
   ["Is something broken?", "Check the <a href=\"/status\"><b>status page</b></a> for live health and 30-day history."],
 ];

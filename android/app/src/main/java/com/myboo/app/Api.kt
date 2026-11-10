@@ -29,6 +29,9 @@ class Prefs(context: Context) {
     var circleId: String?
         get() = sp.getString("circleId", null)
         set(v) = sp.edit().putString("circleId", v).apply()
+    var lastAlertId: Long
+        get() = sp.getLong("lastAlertId", 0)
+        set(v) = sp.edit().putLong("lastAlertId", v).apply()
     var sharing: Boolean
         get() = sp.getBoolean("sharing", false)
         set(v) = sp.edit().putBoolean("sharing", v).apply()
@@ -226,8 +229,13 @@ class Api(private val prefs: Prefs) {
         call("DELETE", "/v1/circles/$circleId/places/$placeId")
     }
 
-    suspend fun setFcmToken(token: String) {
-        call("PUT", "/v1/me/fcm-token", JSONObject().put("token", token))
+    /** Alerts queued for me. Passing the last shown id acknowledges (deletes) everything up to it. */
+    suspend fun alerts(after: Long): List<Alert> {
+        val a = call("GET", "/v1/alerts?after=$after").getJSONArray("alerts")
+        return (0 until a.length()).map { i ->
+            val o = a.getJSONObject(i)
+            Alert(o.getLong("id"), o.getString("title"), o.getString("body"))
+        }
     }
 
     suspend fun postLocation(lat: Double, lng: Double, speed: Float?, accuracy: Float?, ts: Long) {
@@ -242,3 +250,5 @@ class Api(private val prefs: Prefs) {
 
 private fun JSONObject.optDoubleOrNull(key: String): Double? = if (isNull(key)) null else getDouble(key)
 private fun JSONArray.toStrings(): List<String> = (0 until length()).map { getString(it) }
+
+data class Alert(val id: Long, val title: String, val body: String)

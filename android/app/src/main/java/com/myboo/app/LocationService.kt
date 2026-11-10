@@ -20,7 +20,9 @@ import com.google.android.gms.location.Priority
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /** Foreground service that streams location fixes to the MyBoo backend. */
@@ -29,6 +31,7 @@ class LocationService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val client by lazy { LocationServices.getFusedLocationProviderClient(this) }
     private lateinit var api: Api
+    private var poller: Job? = null
 
     private val callback = object : LocationCallback() {
         override fun onLocationResult(result: LocationResult) {
@@ -77,6 +80,17 @@ class LocationService : Service() {
             .setMinUpdateDistanceMeters(15f)
             .build()
         runCatching { client.requestLocationUpdates(req, callback, mainLooper) }
+
+        // Heartbeat: fetch alerts for me even while I'm standing still (no location fixes are sent then).
+        if (poller?.isActive != true) {
+            poller = scope.launch {
+                val prefs = Prefs(this@LocationService)
+                while (true) {
+                    runCatching { Alerts.poll(this@LocationService, api, prefs) }
+                    delay(20_000)
+                }
+            }
+        }
         return START_STICKY
     }
 

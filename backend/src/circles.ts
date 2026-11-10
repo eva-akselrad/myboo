@@ -1,5 +1,4 @@
 import { computeInside, nextDriveState, type Place } from "./geo";
-import { sendPush } from "./fcm";
 import { route, type Env, type User } from "./router";
 import { record } from "./status";
 import { cleanName, err, inviteCode, isNum, json, newId, readBody } from "./util";
@@ -12,21 +11,19 @@ async function isMember(env: Env, circleId: string, userId: string) {
 
 // ---------- push helpers ----------
 
+/** Queue an alert for each user; their phone picks it up on its next poll (see GET /v1/alerts). */
 async function notifyUsers(env: Env, userIds: string[], title: string, body: string) {
   if (!userIds.length) return;
-  const rows = await env.DB.prepare(
-    `SELECT id, fcm_token FROM users WHERE fcm_token IS NOT NULL AND id IN (${userIds.map(() => "?").join(",")})`,
-  )
-    .bind(...userIds)
-    .all<{ id: string; fcm_token: string }>();
-  await Promise.all(
-    rows.results.map(async (u) => {
-      const r = await sendPush(env.FCM_SERVICE_ACCOUNT, u.fcm_token, title, body);
-      if (r === "sent" || r === "invalid-token") await record(env, "push", true); // a dead device token isn't an outage
-      else if (r === "error") await record(env, "push", false);
-      if (r === "invalid-token") await env.DB.prepare("UPDATE users SET fcm_token = NULL WHERE id = ?").bind(u.id).run();
-    }),
-  );
+  try {
+    const ts = Date.now();
+    await env.DB.batch(
+      userIds.map((id) => env.DB.prepare("INSERT INTO alerts (user_id, title, body, ts) VALUES (?, ?, ?, ?)").bind(id, title, body, ts)),
+    );
+    await record(env, "push", true);
+  } catch (e) {
+    console.error("queue alert failed", e);
+    await record(env, "push", false);
+  }
 }
 
 async function circleMatesOf(env: Env, userId: string, circleId?: string): Promise<string[]> {
@@ -99,12 +96,17 @@ async function ingestLocation(env: Env, user: User, b: Record<string, unknown>, 
 
 // ---------- routes ----------
 
-route("PUT", "/v1/me/fcm-token", true, async ({ req, env, user }) => {
-  const token = (await readBody(req)).token;
-  if (typeof token !== "string" || !token) return err(400, "token required");
-  await env.DB.prepare("UPDATE users SET fcm_token = NULL WHERE fcm_token = ? AND id != ?").bind(token, user.id).run();
-  await env.DB.prepare("UPDATE users SET fcm_token = ? WHERE id = ?").bind(token, user.id).run();
-  return json({ ok: true });
+// Legacy (v1.0.0 clients registered an FCM token). Alerts no longer use Firebase.
+route("PUT", "/v1/me/fcm-token", true, async () => json({ ok: true }));
+
+// Phones poll this: `after` is the last alert id they've shown, which also acknowledges (deletes) it.
+route("GET", "/v1/alerts", true, async ({ req, env, user }) => {
+  const after = Math.max(0, Number(new URL(req.url).searchParams.get("after")) || 0);
+  const [, rows] = await env.DB.batch([
+    env.DB.prepare("DELETE FROM alerts WHERE user_id = ? AND (id <= ? OR ts < ?)").bind(user.id, after, Date.now() - 6 * 3_600_000),
+    env.DB.prepare("SELECT id, title, body, ts FROM alerts WHERE user_id = ? AND id > ? ORDER BY id LIMIT 20").bind(user.id, after),
+  ]);
+  return json({ alerts: rows.results });
 });
 
 route("GET", "/v1/me/circles", true, async ({ env, user }) => {

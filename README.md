@@ -2,8 +2,8 @@
 
 A cozy, self-hostable location-sharing app in the spirit of Life360. Create a circle, share the invite code, see everyone on a **live map**, and get a push notification when someone **arrives at**, **leaves**, or **starts driving** from a place you care about. Pastel, notebook-themed, with real email accounts and two-step sign-in.
 
-- `android/` — Kotlin + Jetpack Compose app (OpenStreetMap live map, foreground location service, FCM push)
-- `backend/` — Cloudflare Worker + D1 (SQLite): accounts, geofence/driving detection, push via FCM, email via Cloudflare Email Service
+- `android/` — Kotlin + Jetpack Compose app (OpenStreetMap live map, foreground location service, self-updating from GitHub releases)
+- `backend/` — Cloudflare Worker + D1 (SQLite): accounts, geofence/driving detection, polled alerts (no Firebase), email via Cloudflare Email Service
 
 <p align="center">
   <img src="docs/screenshot-welcome.png" width="230" alt="Welcome">
@@ -49,7 +49,6 @@ npm run db:remote                     # apply schema.sql
 # Email: the sender domain must be onboarded to Cloudflare Email Sending
 npx wrangler email sending enable <your-domain>
 #   then set FROM_EMAIL in wrangler.jsonc (e.g. myboo@<your-domain>)
-npx wrangler secret put FCM_SERVICE_ACCOUNT    # Firebase service-account JSON (push)
 npm run deploy                        # also attaches the custom domain in `routes`
 ```
 
@@ -57,7 +56,7 @@ Local dev: put `DEV_LOG_CODES=1` in `backend/.dev.vars` (never in production), t
 
 ### Android
 
-1. Create a Firebase project, add an Android app with package `com.myboo.app`, and put its `google-services.json` in `android/app/` (gitignored). Generate a service-account key there for `FCM_SERVICE_ACCOUNT`.
+1. No Firebase or Google account is needed: alerts are queued on the Worker and the phone fetches them every ~20 s while sharing is on (and while the app is open). Give MyBoo "unrestricted" battery use so Android doesn't kill it.
 2. Point at your own backend with `myboo.apiUrl=https://your.domain` in `~/.gradle/gradle.properties` (use `http://10.0.2.2:8787` for the emulator + `wrangler dev`).
 3. Open `android/` in Android Studio, or run `./gradlew :app:installDebug`.
 
@@ -78,7 +77,7 @@ Map tiles come from the public OpenStreetMap tile server, which is fine for deve
 | POST | `/v1/me/password` | `{current_password, new_password}` |
 | GET / DELETE | `/v1/me/sessions[/:id]` | devices |
 | POST | `/v1/me/logout-all` | |
-| PUT | `/v1/me/fcm-token` | `{token}` |
+| GET | `/v1/alerts?after=ID` | pending alerts for me; `after` acknowledges earlier ones |
 | GET / POST | `/v1/me/circles`, `/v1/circles`, `/v1/circles/join` | |
 | GET | `/v1/circles/:id` | members (last location, driving, current places) + places |
 | POST / DELETE | `/v1/circles/:id/places[/:pid]` | `{name, lat, lng, radius_m}` |

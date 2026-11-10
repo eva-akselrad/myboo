@@ -3,7 +3,6 @@ import { err, sha256 } from "./util";
 export interface Env {
   DB: D1Database;
   EMAIL?: SendEmail;
-  FCM_SERVICE_ACCOUNT?: string;
   /** Sender address; must be on a domain onboarded to Cloudflare Email Sending. */
   FROM_EMAIL?: string;
   /** If "1", log one-time codes to the console (local dev only; never set in production). */
