@@ -32,7 +32,7 @@ A cozy, self-hostable location-sharing app in the spirit of Life360. Create a ci
 - **Status page** at `/status` (and JSON at `/status.json`): API, database, email, push and map-tile health with 30-day uptime bars. A cron trigger (every 5 min) probes the API, database and OSM tiles; email and push outcomes are recorded when they happen. Data lives in the D1 `checks` table (35-day retention).
 
 **Self-updating**
-- Not on a store: the app checks GitHub Releases on launch (at most every 6 h, or manually in Settings), downloads the `.apk` asset in the background, and offers a one-tap "Update now" (system installer; Android 12+ updates without an extra prompt after the first one).
+- Not on a store: the app checks GitHub Releases on every launch (or manually in Settings), downloads the `.apk` asset in the background, and offers a one-tap "Update now" (system installer; Android 12+ updates without an extra prompt after the first one).
 - Cut a release with `scripts/release.sh 1.2.0 "notes"`. It builds an APK signed with `~/.myboo/myboo-release.jks` and publishes `myboo.apk` to a GitHub release. **Back up that keystore:** an update only installs over the same signing key.
 
 ## Deployment

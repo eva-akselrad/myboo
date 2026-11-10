@@ -68,7 +68,6 @@ sealed interface UpdateState {
  */
 object Updater {
     private const val REPO = "eva-akselrad/myboo"
-    private const val CHECK_EVERY_MS = 6 * 3_600_000L
 
     var state by mutableStateOf<UpdateState>(UpdateState.Idle)
         private set
@@ -88,11 +87,9 @@ object Updater {
         return false
     }
 
-    /** Auto check on app start, at most every few hours. */
-    fun checkIfDue(ctx: Context) {
-        val sp = ctx.applicationContext.getSharedPreferences("updates", Context.MODE_PRIVATE)
-        if (System.currentTimeMillis() - sp.getLong("last", 0) < CHECK_EVERY_MS) return
-        check(ctx, auto = true)
+    /** Auto check once per app launch (GitHub's anonymous API limit is plenty for this). */
+    fun checkOnLaunch(ctx: Context) {
+        if (state is UpdateState.Idle || state is UpdateState.Failed) check(ctx, auto = true)
     }
 
     fun check(ctx: Context, auto: Boolean = false) {
@@ -102,7 +99,6 @@ object Updater {
         scope.launch {
             val result = runCatching { withContext(Dispatchers.IO) { fetchLatest() } }
             result.onSuccess { rel ->
-                app.getSharedPreferences("updates", Context.MODE_PRIVATE).edit().putLong("last", System.currentTimeMillis()).apply()
                 if (rel != null && isNewer(rel.version, BuildConfig.VERSION_NAME)) {
                     snoozed = false
                     state = UpdateState.Available(rel)
@@ -257,7 +253,7 @@ private fun ProgressSticker(percent: Int, modifier: Modifier = Modifier) {
 fun UpdateBanner(modifier: Modifier = Modifier) {
     val ctx = LocalContext.current
     val nb = MaterialTheme.notebook
-    LaunchedEffect(Unit) { Updater.checkIfDue(ctx) }
+    LaunchedEffect(Unit) { Updater.checkOnLaunch(ctx) }
 
     val s = Updater.state
     val release = when (s) {
@@ -287,7 +283,7 @@ fun UpdateBanner(modifier: Modifier = Modifier) {
                     Spacer(Modifier.height(6.dp))
                     ProgressSticker(s.percent)
                 }
-                is UpdateState.Ready -> Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                is UpdateState.Ready -> Column {
                     StickerButton("Update now", fill = nb.mint, onClick = {
                         if (Updater.canInstall(ctx)) Updater.install(ctx, s.file) else Updater.askInstallPermission(ctx)
                     })
