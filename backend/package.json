@@ -8,6 +8,7 @@
     "deploy": "wrangler deploy",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test test/*.test.ts",
+    "test:e2e": "node test/e2e.mjs",
     "db:local": "wrangler d1 execute myboo --local --file=schema.sql",
     "db:remote": "wrangler d1 execute myboo --remote --file=schema.sql"
   },

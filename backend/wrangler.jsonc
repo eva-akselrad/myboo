@@ -4,12 +4,16 @@
   "main": "src/index.ts",
   "compatibility_date": "2025-01-01",
   "observability": { "enabled": true },
+  "routes": [{ "pattern": "myboo.evaakselrad.com", "custom_domain": true }],
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "myboo",
       "database_id": "3311ae9c-a8ce-436e-9c6b-d3cae4cbe493"
     }
-  ]
+  ],
+  // Cloudflare Email Service: sender domain (evaakselrad.com) is onboarded for Email Sending.
+  "send_email": [{ "name": "EMAIL" }],
+  "vars": { "FROM_EMAIL": "myboo@evaakselrad.com" }
   // Secret (not committed): wrangler secret put FCM_SERVICE_ACCOUNT
 }

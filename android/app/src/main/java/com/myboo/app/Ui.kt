@@ -1,123 +1,315 @@
 package com.myboo.app
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.rotate
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.drawText
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import java.util.Locale
-import kotlin.math.abs
-import kotlin.math.cos
 import kotlin.math.max
-import kotlin.math.min
 
-// ---------- small building blocks ----------
+// ---------- notebook paper ----------
+
+/** Ruled paper with a margin line and binding holes. Everything draws on top of this. */
+@Composable
+fun NotebookBackground(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    val nb = MaterialTheme.notebook
+    Box(
+        modifier.fillMaxSize().background(nb.paper).drawBehind {
+            val step = 32.dp.toPx()
+            var y = 56.dp.toPx()
+            while (y < size.height) {
+                drawLine(nb.ruled, Offset(0f, y), Offset(size.width, y), 1.5.dp.toPx())
+                y += step
+            }
+            drawLine(nb.margin.copy(alpha = 0.75f), Offset(30.dp.toPx(), 0f), Offset(30.dp.toPx(), size.height), 1.5.dp.toPx())
+            var hy = 96.dp.toPx()
+            while (hy < size.height) {
+                drawCircle(nb.ink.copy(alpha = 0.07f), 7.dp.toPx(), Offset(12.dp.toPx(), hy))
+                drawCircle(nb.ink.copy(alpha = 0.22f), 7.dp.toPx(), Offset(12.dp.toPx(), hy), style = Stroke(1.5.dp.toPx()))
+                hy += 128.dp.toPx()
+            }
+        },
+    ) { CompositionLocalProvider(LocalContentColor provides nb.ink) { content() } }
+}
+
+/** Hard offset "sticker" shadow + ink outline. */
+@Composable
+fun Modifier.sticker(
+    fill: Color, radius: Dp = 18.dp, shadow: Dp = 4.dp, border: Dp = 2.dp,
+): Modifier {
+    val nb = MaterialTheme.notebook
+    val shadowColor = if (nb.dark) nb.ink.copy(alpha = 0.28f) else nb.ink
+    val shape = RoundedCornerShape(radius)
+    return this
+        .drawBehind {
+            if (shadow.value > 0f) {
+                drawRoundRect(shadowColor, Offset(shadow.toPx(), shadow.toPx()), size, CornerRadius(radius.toPx()))
+            }
+        }
+        .clip(shape)
+        .background(fill)
+        .border(border, nb.ink, shape)
+}
 
 @Composable
-fun GhostLogo(size: Dp, body: Color = MaterialTheme.colorScheme.primary, eyes: Color = MaterialTheme.colorScheme.background) {
-    Canvas(Modifier.size(size)) {
-        val w = this.size.width
-        val h = this.size.height
-        val p = Path().apply {
-            moveTo(0.1f * w, 0.9f * h)
-            lineTo(0.1f * w, 0.45f * h)
-            cubicTo(0.1f * w, 0.0f * h, 0.9f * w, 0.0f * h, 0.9f * w, 0.45f * h)
-            lineTo(0.9f * w, 0.9f * h)
-            quadraticTo(0.8f * w, 1.02f * h, 0.7f * w, 0.9f * h)
-            quadraticTo(0.6f * w, 0.78f * h, 0.5f * w, 0.9f * h)
-            quadraticTo(0.4f * w, 1.02f * h, 0.3f * w, 0.9f * h)
-            quadraticTo(0.2f * w, 0.78f * h, 0.1f * w, 0.9f * h)
-            close()
-        }
-        drawPath(p, Brush.verticalGradient(listOf(body, body.copy(alpha = 0.78f))))
-        drawCircle(eyes, 0.065f * w, Offset(0.37f * w, 0.42f * h))
-        drawCircle(eyes, 0.065f * w, Offset(0.63f * w, 0.42f * h))
+fun NoteCard(
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.surface,
+    tilt: Float = 0f,
+    tape: Boolean = false,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Box(modifier.padding(end = 5.dp, bottom = 5.dp).graphicsLayer { rotationZ = tilt }) {
+        Column(Modifier.fillMaxWidth().sticker(color, radius = 20.dp).padding(18.dp), content = content)
+        if (tape) TapeStrip(Modifier.align(Alignment.TopCenter).offset(y = (-9).dp))
     }
 }
 
 @Composable
-fun Avatar(name: String, id: String, size: Dp = 44.dp) {
-    val c = avatarColor(id)
+fun TapeStrip(modifier: Modifier = Modifier) {
+    val nb = MaterialTheme.notebook
     Box(
-        Modifier.size(size).clip(CircleShape)
-            .background(Brush.linearGradient(listOf(c, c.copy(alpha = 0.7f)))),
+        modifier.rotate(-3f).size(width = 74.dp, height = 20.dp)
+            .background(nb.butter.copy(alpha = 0.92f))
+            .border(1.5.dp, nb.ink.copy(alpha = 0.55f)),
+    )
+}
+
+// ---------- buttons, tags, avatars ----------
+
+@Composable
+fun StickerButton(
+    text: String,
+    modifier: Modifier = Modifier,
+    fill: Color = MaterialTheme.colorScheme.primary,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+) {
+    val src = remember { MutableInteractionSource() }
+    val pressed by src.collectIsPressedAsState()
+    val press by animateDpAsState(if (pressed && enabled) 3.dp else 0.dp, label = "press")
+    val nb = MaterialTheme.notebook
+    Box(modifier.fillMaxWidth().padding(end = 4.dp, bottom = 4.dp)) {
+        Box(
+            Modifier.fillMaxWidth().offset(press, press)
+                .sticker(if (enabled) fill else MaterialTheme.colorScheme.surfaceVariant, radius = 999.dp, shadow = 4.dp - press)
+                .clickable(interactionSource = src, indication = null, enabled = enabled, onClick = onClick)
+                .padding(vertical = 13.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text, style = MaterialTheme.typography.labelLarge,
+                color = if (enabled) (if (nb.dark) Color(0xFF2D1B22) else nb.ink) else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+fun TextLink(text: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    TextButton(onClick = onClick, modifier = modifier) {
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.notebook.ink.copy(alpha = 0.75f))
+    }
+}
+
+/** Washi-tape style status tag. */
+@Composable
+fun Tag(text: String, color: Color, modifier: Modifier = Modifier) {
+    Text(
+        text,
+        style = MaterialTheme.typography.bodySmall,
+        color = if (MaterialTheme.notebook.dark) MaterialTheme.notebook.ink else MaterialTheme.notebook.ink,
+        modifier = modifier.rotate(-1.5f).sticker(color, radius = 8.dp, shadow = 0.dp, border = 1.5.dp)
+            .padding(horizontal = 10.dp, vertical = 3.dp),
+    )
+}
+
+@Composable
+fun Avatar(name: String, id: String, size: Dp = 46.dp) {
+    val nb = MaterialTheme.notebook
+    Box(
+        Modifier.size(size).clip(CircleShape).background(avatarColor(id)).border(2.dp, nb.ink, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             name.firstOrNull()?.uppercase() ?: "?",
-            color = Color(0xFF10131A),
-            style = TextStyle(fontSize = (size.value * 0.42f).sp, fontWeight = FontWeight.ExtraBold),
+            style = MaterialTheme.typography.titleMedium,
+            color = Color(0xFF3B3A4A),
         )
     }
 }
 
 @Composable
-fun Pill(text: String, color: Color, modifier: Modifier = Modifier) {
-    Row(
-        modifier.clip(RoundedCornerShape(50)).background(color.copy(alpha = 0.16f)).padding(horizontal = 10.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(Modifier.size(6.dp).clip(CircleShape).background(color))
-        Text(text, color = color, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(start = 6.dp))
+fun SectionTitle(text: String, modifier: Modifier = Modifier) {
+    val nb = MaterialTheme.notebook
+    Text(
+        text, style = MaterialTheme.typography.titleMedium,
+        modifier = modifier.padding(start = 2.dp, top = 8.dp).drawBehind {
+            drawRoundRect(
+                nb.butter.copy(alpha = if (nb.dark) 0.45f else 0.95f),
+                Offset(-4.dp.toPx(), size.height * 0.52f),
+                androidx.compose.ui.geometry.Size(size.width + 10.dp.toPx(), size.height * 0.36f),
+                CornerRadius(4.dp.toPx()),
+            )
+        },
+    )
+}
+
+/** Doodled ghost: ink outline, blush cheeks, little smile. */
+@Composable
+fun GhostLogo(size: Dp, fill: Color = MaterialTheme.notebook.pink.let { if (MaterialTheme.notebook.dark) MaterialTheme.colorScheme.primary else Color(0xFFFFB3C6) }) {
+    val ink = MaterialTheme.notebook.ink
+    Canvas(Modifier.size(size)) {
+        val w = this.size.width
+        val h = this.size.height
+        val p = Path().apply {
+            moveTo(0.12f * w, 0.88f * h)
+            lineTo(0.12f * w, 0.46f * h)
+            cubicTo(0.12f * w, 0.0f * h, 0.88f * w, 0.0f * h, 0.88f * w, 0.46f * h)
+            lineTo(0.88f * w, 0.88f * h)
+            quadraticTo(0.80f * w, 1.0f * h, 0.72f * w, 0.88f * h)
+            quadraticTo(0.64f * w, 0.76f * h, 0.56f * w, 0.88f * h)
+            quadraticTo(0.50f * w, 1.0f * h, 0.44f * w, 0.88f * h)
+            quadraticTo(0.36f * w, 0.76f * h, 0.28f * w, 0.88f * h)
+            quadraticTo(0.20f * w, 1.0f * h, 0.12f * w, 0.88f * h)
+            close()
+        }
+        drawPath(p, fill)
+        drawPath(p, ink, style = Stroke(width = 0.045f * w, cap = StrokeCap.Round, join = StrokeJoin.Round))
+        drawCircle(ink, 0.05f * w, Offset(0.38f * w, 0.42f * h))
+        drawCircle(ink, 0.05f * w, Offset(0.62f * w, 0.42f * h))
+        drawCircle(Color(0xFFFF8FA9).copy(alpha = 0.55f), 0.055f * w, Offset(0.30f * w, 0.53f * h))
+        drawCircle(Color(0xFFFF8FA9).copy(alpha = 0.55f), 0.055f * w, Offset(0.70f * w, 0.53f * h))
+        val smile = Path().apply {
+            moveTo(0.44f * w, 0.53f * h)
+            quadraticTo(0.50f * w, 0.60f * h, 0.56f * w, 0.53f * h)
+        }
+        drawPath(smile, ink, style = Stroke(width = 0.035f * w, cap = StrokeCap.Round))
     }
 }
 
+// ---------- inputs ----------
+
 @Composable
-fun PrimaryButton(text: String, enabled: Boolean = true, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Button(
-        onClick = onClick, enabled = enabled, shape = RoundedCornerShape(50),
-        modifier = modifier.fillMaxWidth().heightIn(min = 54.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+fun NoteField(
+    value: String,
+    onChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    keyboard: KeyboardType = KeyboardType.Text,
+    password: Boolean = false,
+    imeAction: ImeAction = ImeAction.Next,
+    onDone: (() -> Unit)? = null,
+) {
+    var show by remember { mutableStateOf(false) }
+    val ink = MaterialTheme.notebook.ink
+    val surface = MaterialTheme.colorScheme.surface
+    OutlinedTextField(
+        value, onChange, modifier = modifier.fillMaxWidth(), singleLine = true,
+        label = { Text(label) },
+        shape = RoundedCornerShape(14.dp),
+        textStyle = MaterialTheme.typography.bodyLarge,
+        visualTransformation = if (password && !show) PasswordVisualTransformation() else VisualTransformation.None,
+        keyboardOptions = KeyboardOptions(keyboardType = if (password) KeyboardType.Password else keyboard, imeAction = imeAction),
+        keyboardActions = KeyboardActions(onDone = { onDone?.invoke() }, onGo = { onDone?.invoke() }),
+        trailingIcon = if (password) {
+            { TextButton(onClick = { show = !show }) { Text(if (show) "hide" else "show", color = ink.copy(alpha = 0.7f)) } }
+        } else null,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = ink, unfocusedBorderColor = ink.copy(alpha = 0.45f),
+            focusedContainerColor = surface, unfocusedContainerColor = surface,
+            focusedLabelColor = ink, cursorColor = ink,
         ),
-    ) { Text(text, style = MaterialTheme.typography.labelLarge) }
+    )
+}
+
+/** Six notebook cells for the emailed code. */
+@Composable
+fun CodeField(value: String, onChange: (String) -> Unit, modifier: Modifier = Modifier) {
+    val nb = MaterialTheme.notebook
+    val focus = remember { FocusRequester() }
+    BasicTextField(
+        value = value,
+        onValueChange = { onChange(it.filter(Char::isDigit).take(6)) },
+        modifier = modifier.fillMaxWidth().focusRequester(focus),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+        cursorBrush = SolidColor(Color.Transparent),
+        decorationBox = {
+            Row(Modifier.fillMaxWidth().padding(end = 3.dp, bottom = 3.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                repeat(6) { i ->
+                    val ch = value.getOrNull(i)
+                    Box(
+                        Modifier.weight(1f).aspectRatio(0.78f)
+                            .sticker(if (ch != null) nb.butter else MaterialTheme.colorScheme.surface, radius = 12.dp, shadow = 3.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(ch?.toString() ?: "", style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
+                    }
+                }
+            }
+        },
+    )
+    LaunchedEffect(Unit) { focus.requestFocus() }
 }
 
 @Composable
-fun GhostButton(text: String, enabled: Boolean = true, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    OutlinedButton(
-        onClick = onClick, enabled = enabled, shape = RoundedCornerShape(50),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        modifier = modifier.fillMaxWidth().heightIn(min = 54.dp),
-    ) { Text(text, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface) }
+fun ErrorNote(text: String?) {
+    if (text != null) Text(text, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
 }
 
 // ---------- formatting ----------
@@ -140,91 +332,7 @@ fun speedLabel(mps: Double?): String? {
     return "${v.toInt()} ${if (us) "mph" else "km/h"}"
 }
 
-// ---------- radar: keyless live map of the circle ----------
-
 @Composable
-fun Radar(members: List<Member>, places: List<PlaceInfo>, modifier: Modifier = Modifier) {
-    val scheme = MaterialTheme.colorScheme
-    val measurer = rememberTextMeasurer()
-    val t = rememberInfiniteTransition(label = "pulse")
-    val pulse by t.animateFloat(0f, 1f, infiniteRepeatable(tween(1800, easing = LinearEasing), RepeatMode.Restart), label = "p")
-    val sweep by t.animateFloat(0f, 360f, infiniteRepeatable(tween(6000, easing = LinearEasing), RepeatMode.Restart), label = "s")
-
-    val located = members.filter { it.lat != null && it.lng != null }
-
-    Box(
-        modifier.clip(RoundedCornerShape(28.dp))
-            .background(Brush.verticalGradient(listOf(scheme.surfaceVariant, scheme.surface)))
-    ) {
-        Canvas(Modifier.fillMaxSize()) {
-            val w = size.width; val h = size.height
-            val c = Offset(w / 2, h / 2)
-            val maxR = min(w, h) / 2 * 0.92f
-
-            // grid
-            for (i in 1..3) drawCircle(scheme.outline.copy(alpha = 0.45f), maxR * i / 3f, c, style = Stroke(1.dp.toPx()))
-            drawLine(scheme.outline.copy(alpha = 0.3f), Offset(c.x - maxR, c.y), Offset(c.x + maxR, c.y), 1.dp.toPx())
-            drawLine(scheme.outline.copy(alpha = 0.3f), Offset(c.x, c.y - maxR), Offset(c.x, c.y + maxR), 1.dp.toPx())
-
-            // sweep
-            rotate(sweep, c) {
-                drawCircle(
-                    Brush.sweepGradient(
-                        0f to Color.Transparent, 0.82f to Color.Transparent,
-                        1f to scheme.secondary.copy(alpha = 0.18f), center = c,
-                    ),
-                    maxR, c,
-                )
-            }
-
-            val pts = located.map { it.lat!! to it.lng!! } + places.map { it.lat to it.lng }
-            if (pts.isEmpty()) {
-                val msg = "Waiting for someone to share…"
-                val r = measurer.measure(msg, TextStyle(color = scheme.onSurfaceVariant, fontSize = 14.sp))
-                drawText(r, topLeft = Offset(c.x - r.size.width / 2f, c.y - r.size.height / 2f))
-                return@Canvas
-            }
-
-            val lat0 = (pts.maxOf { it.first } + pts.minOf { it.first }) / 2
-            val lng0 = (pts.maxOf { it.second } + pts.minOf { it.second }) / 2
-            val mLat = 111_320.0
-            val mLng = 111_320.0 * cos(Math.toRadians(lat0))
-            fun dx(lng: Double) = (lng - lng0) * mLng
-            fun dy(lat: Double) = -(lat - lat0) * mLat
-
-            var extent = 250.0
-            located.forEach { extent = max(extent, max(abs(dx(it.lng!!)), abs(dy(it.lat!!)))) }
-            places.forEach { extent = max(extent, max(abs(dx(it.lng)), abs(dy(it.lat))) + it.radiusM) }
-            val scale = (maxR / (extent * 1.25)).toFloat()
-            fun pos(lat: Double, lng: Double) = Offset(c.x + (dx(lng) * scale).toFloat(), c.y + (dy(lat) * scale).toFloat())
-
-            // places
-            places.forEach { p ->
-                val o = pos(p.lat, p.lng)
-                val r = (p.radiusM * scale).toFloat().coerceAtLeast(10.dp.toPx())
-                drawCircle(scheme.secondary.copy(alpha = 0.10f), r, o)
-                drawCircle(scheme.secondary.copy(alpha = 0.55f), r, o, style = Stroke(1.5.dp.toPx()))
-                val lbl = measurer.measure(p.name, TextStyle(color = scheme.secondary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold))
-                drawText(lbl, topLeft = Offset(o.x - lbl.size.width / 2f, o.y + r + 3.dp.toPx()))
-            }
-
-            // people
-            located.forEach { m ->
-                val o = pos(m.lat!!, m.lng!!)
-                val col = avatarColor(m.id)
-                val rad = 15.dp.toPx()
-                if (m.driving) {
-                    drawCircle(col.copy(alpha = 0.35f * (1f - pulse)), rad + 22.dp.toPx() * pulse, o)
-                }
-                drawCircle(Color.Black.copy(alpha = 0.25f), rad + 2.dp.toPx(), o + Offset(0f, 2.dp.toPx()))
-                drawCircle(col, rad, o)
-                drawCircle(scheme.background, rad, o, style = Stroke(2.5.dp.toPx()))
-                val ini = measurer.measure(
-                    m.name.firstOrNull()?.uppercase() ?: "?",
-                    TextStyle(color = Color(0xFF10131A), fontSize = 14.sp, fontWeight = FontWeight.ExtraBold),
-                )
-                drawText(ini, topLeft = Offset(o.x - ini.size.width / 2f, o.y - ini.size.height / 2f))
-            }
-        }
-    }
+fun FullScreen(content: @Composable () -> Unit) {
+    Box(Modifier.fillMaxSize()) { content() }
 }

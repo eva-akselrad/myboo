@@ -15,7 +15,7 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1.0"
-        val api = (project.findProperty("myboo.apiUrl") as String?) ?: "https://myboo-api.scienceandfire66.workers.dev"
+        val api = (project.findProperty("myboo.apiUrl") as String?) ?: "https://myboo.evaakselrad.com"
         buildConfigField("String", "API_BASE_URL", "\"$api\"")
     }
 
@@ -39,6 +39,9 @@ dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
+
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
+    implementation("org.osmdroid:osmdroid-android:6.1.20") // OpenStreetMap, no API key
 
     implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation(platform("com.google.firebase:firebase-bom:33.5.1"))
